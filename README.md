@@ -83,6 +83,8 @@ Running it locally:
 
 ```sh
 docker compose up -d                                     # LocalStack on :4566
+cp packages/core/.env.example packages/core/.env
+npm run db:setup                                         # creates the DynamoDB tables (safe to re-run)
 npm run cdk:bootstrap:local --workspace=@repo/worker     # once per LocalStack volume
 npm run cdk:deploy:local --workspace=@repo/worker        # builds, deploys, writes apps/worker/cdk-outputs.json
 cp apps/worker/.env.example apps/worker/.env             # then fill in JOB_SCHEDULE_GROUP_NAME

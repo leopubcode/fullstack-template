@@ -8,8 +8,9 @@ import { Construct } from "constructs";
 import type { JobScheduler } from "./JobScheduler";
 
 // The env var each table's name is passed in, as the services read it.
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface TableNames {}
+export interface TableNames {
+  USERS_TABLE_NAME: string;
+}
 
 export interface JobWorkerProps {
   queue: sqs.IQueue;

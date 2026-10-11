@@ -6,13 +6,13 @@ const UserListSchema = z.object({
 });
 
 export const appRouter = router({
-  userList: publicProcedure.input(UserListSchema).query(async ({ input }) => {
-    const users = [{ id: 1, name: input.name }];
+  userList: publicProcedure.input(UserListSchema).query(async ({ ctx }) => {
+    const users = await ctx.services.users.list();
 
     return users;
   }),
-  submitTestJob: publicProcedure.mutation(({ ctx }) =>
-    ctx.services.test.submit(),
+  submitTestJob: publicProcedure.mutation(
+    async ({ ctx }) => await ctx.services.test.submit(),
   ),
 });
 

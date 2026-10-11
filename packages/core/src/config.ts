@@ -24,12 +24,24 @@ function requireEnv(env: Env, name: string): string {
   return value;
 }
 
+export interface TablesConfig {
+  users: string;
+}
+
+export function loadTablesConfig(env: Env): TablesConfig {
+  return {
+    users: requireEnv(env, "USERS_TABLE_NAME"),
+  };
+}
+
 export interface Config {
   jobQueue: AwsJobQueueConfig;
+  tables: TablesConfig;
 }
 
 export function loadConfig(env: Env): Config {
   return {
     jobQueue: loadJobQueueConfig(env),
+    tables: loadTablesConfig(env),
   };
 }

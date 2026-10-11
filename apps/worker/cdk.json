@@ -1,6 +1,8 @@
 {
   "app": "npx tsx infra/app.ts",
   "context": {
-    "tableNames": {}
+    "tableNames": {
+      "USERS_TABLE_NAME": "Users"
+    }
   }
 }

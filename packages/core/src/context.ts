@@ -1,8 +1,10 @@
 import type { TestService } from "./services/TestService";
 import type { Clock } from "./domain/clock";
+import type { UsersService } from "./services/UsersService";
 
 export interface Services {
   test: TestService;
+  users: UsersService;
 }
 
 export type { Clock };

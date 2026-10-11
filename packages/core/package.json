@@ -24,7 +24,8 @@
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --write \"src/**/*.ts\" --log-level warn",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:setup": "dotenv -- tsx src/storage/setup.ts"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
@@ -33,12 +34,15 @@
     "dotenv-cli": "^11.0.0",
     "esbuild": "^0.28.2",
     "nodemon": "^3.1.14",
+    "tsx": "^4.23.15",
     "typescript": "6.0.3",
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1144.0",
     "@aws-sdk/client-scheduler": "^3.1145.0",
     "@aws-sdk/client-sqs": "^3.1145.0",
+    "@aws-sdk/lib-dynamodb": "^3.1144.0",
     "@trpc/server": "^11.19.0",
     "zod": "^4.6.5"
   }
