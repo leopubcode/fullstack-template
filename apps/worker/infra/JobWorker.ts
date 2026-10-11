@@ -15,6 +15,9 @@ export interface TableNames {
 export interface JobWorkerProps {
   queue: sqs.IQueue;
   scheduler: JobScheduler;
+  // core's config requires this even though no job handler uses it yet; the
+  // worker never gets write access to the bucket.
+  filesBucketName: string;
   tableNames: TableNames;
   timeout: Duration;
   // Stage-specific env, e.g. development settings on LocalStack.
@@ -47,6 +50,7 @@ export class JobWorker extends Construct {
         JOB_QUEUE_URL: queue.queueUrl,
         JOB_SCHEDULE_GROUP_NAME: scheduler.scheduleGroup.scheduleGroupName,
         JOB_SCHEDULER_ROLE_ARN: scheduler.role.roleArn,
+        FILES_BUCKET_NAME: props.filesBucketName,
       },
     });
 

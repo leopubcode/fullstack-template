@@ -34,14 +34,26 @@ export function loadTablesConfig(env: Env): TablesConfig {
   };
 }
 
+export interface FilesConfig {
+  bucketName: string;
+}
+
+export function loadFilesConfig(env: Env): FilesConfig {
+  return {
+    bucketName: requireEnv(env, "FILES_BUCKET_NAME"),
+  };
+}
+
 export interface Config {
   jobQueue: AwsJobQueueConfig;
   tables: TablesConfig;
+  files: FilesConfig;
 }
 
 export function loadConfig(env: Env): Config {
   return {
     jobQueue: loadJobQueueConfig(env),
     tables: loadTablesConfig(env),
+    files: loadFilesConfig(env),
   };
 }

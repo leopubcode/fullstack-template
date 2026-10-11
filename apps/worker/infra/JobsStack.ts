@@ -1,6 +1,7 @@
 import { CfnOutput, Duration, RemovalPolicy, Stack } from "aws-cdk-lib";
 import type { StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
+import { FilesBucket } from "./FilesBucket";
 import { JobQueue } from "./JobQueue";
 import { JobScheduler } from "./JobScheduler";
 import { JobWorker, type TableNames } from "./JobWorker";
@@ -10,6 +11,8 @@ export type Stage = "local" | "aws";
 export interface JobsStackProps extends StackProps {
   stage: Stage;
   tableNames: TableNames;
+  // Origins the web app is served from, also used for the files bucket's CORS.
+  allowedOrigins: string[];
 }
 
 const WORKER_TIMEOUT = Duration.seconds(30);
@@ -33,9 +36,14 @@ export class JobsStack extends Stack {
       queue,
       removalPolicy,
     });
+    const { bucket: filesBucket } = new FilesBucket(this, "FilesBucket", {
+      allowedOrigins: props.allowedOrigins,
+      removalPolicy,
+    });
     new JobWorker(this, "JobWorker", {
       queue,
       scheduler,
+      filesBucketName: filesBucket.bucketName,
       tableNames: props.tableNames,
       timeout: WORKER_TIMEOUT,
       environment:
@@ -63,6 +71,14 @@ export class JobsStack extends Stack {
     new CfnOutput(this, "JobSchedulerRoleArn", {
       value: scheduler.role.roleArn,
       exportName: "Jobs-SchedulerRoleArn",
+    });
+    new CfnOutput(this, "FilesBucketName", {
+      value: filesBucket.bucketName,
+      exportName: "Files-BucketName",
+    });
+    new CfnOutput(this, "FilesBucketArn", {
+      value: filesBucket.bucketArn,
+      exportName: "Files-BucketArn",
     });
   }
 }

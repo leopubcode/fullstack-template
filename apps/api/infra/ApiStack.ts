@@ -23,9 +23,15 @@ export class ApiStack extends Stack {
       allowedOrigins: props.allowedOrigins,
       // tRPC puts stack traces in error responses unless NODE_ENV is
       // "production".
-      environment: {
-        NODE_ENV: props.stage === "local" ? "development" : "production",
-      },
+      environment:
+        props.stage === "local"
+          ? {
+              NODE_ENV: "development",
+              // Presigned URLs must name a host both this Lambda and the
+              // browser resolve to LocalStack (see s3ClientInstance.ts).
+              AWS_ENDPOINT_URL_S3: "http://s3.localhost.localstack.cloud:4566",
+            }
+          : { NODE_ENV: "production" },
     });
 
     // The web app's VITE_API_URL (see the README).

@@ -3,10 +3,12 @@ import { Fn } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import type { Duration } from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { FILES_EXPORTS } from "./filesExports";
 import { JOBS_EXPORTS } from "./jobsExports";
 
 // The env var each table's name is passed in, as the services read it.
@@ -49,6 +51,10 @@ export class ApiFunction extends Construct {
       Fn.importValue(JOBS_EXPORTS.schedulerRoleArn),
       { mutable: false },
     );
+    const filesBucket = s3.Bucket.fromBucketAttributes(this, "FilesBucket", {
+      bucketName: Fn.importValue(FILES_EXPORTS.bucketName),
+      bucketArn: Fn.importValue(FILES_EXPORTS.bucketArn),
+    });
 
     this.function = new lambda.Function(this, "Function", {
       runtime: lambda.Runtime.NODEJS_24_X,
@@ -66,6 +72,7 @@ export class ApiFunction extends Construct {
         JOB_QUEUE_URL: queue.queueUrl,
         JOB_SCHEDULE_GROUP_NAME: scheduleGroup.scheduleGroupName,
         JOB_SCHEDULER_ROLE_ARN: schedulerRole.roleArn,
+        FILES_BUCKET_NAME: filesBucket.bucketName,
       },
     });
 
@@ -90,5 +97,8 @@ export class ApiFunction extends Construct {
     queue.grantSendMessages(this.function);
     scheduleGroup.grantWriteSchedules(this.function);
     schedulerRole.grantPassRole(this.function.grantPrincipal);
+
+    // Only needed to sign PutObject URLs; the function never uploads itself.
+    filesBucket.grantPut(this.function);
   }
 }

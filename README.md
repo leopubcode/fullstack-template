@@ -94,6 +94,12 @@ LocalStack stores schedules but never fires them, so `local-scheduler` polls the
 
 Anything that adds jobs needs `JOB_QUEUE_ARN`, `JOB_QUEUE_URL`, `JOB_SCHEDULE_GROUP_NAME` and `JOB_SCHEDULER_ROLE_ARN`, all of which are stack outputs in `cdk-outputs.json`. The CDK stack sets them for the worker. The API's local server reads them from `apps/api/.env` (copy `apps/api/.env.example`) and won't start without them; the deployed API Lambda imports them from the `Jobs` stack.
 
+## Files (S3)
+
+The `Jobs` stack also owns the files bucket, because it deploys first and the API imports from it. Its name is the `FilesBucketName` output, which every app reads as `FILES_BUCKET_NAME`. The API hands out presigned PUT URLs so the browser uploads straight to the bucket. Only the API can write to the bucket; the bucket's CORS allows PUT from the same `allowedOrigins` (default `http://localhost:5173`, override with `--context allowedOrigins='[...]'` on the worker's deploy).
+
+On LocalStack, presigned URLs must be signed for `s3.localhost.localstack.cloud`: LocalStack doesn't route the `<bucket>.localhost` host the SDK would sign for with only `AWS_ENDPOINT_URL`. `apps/api/.env.example` sets `AWS_ENDPOINT_URL_S3` for the local server, and the API stack sets it on the Lambda when `stage=local`. That host resolves to `127.0.0.1` through public DNS, so a router with DNS-rebinding protection may block it.
+
 `docker-compose.yml` pins `localstack/localstack:4.14.0`. Later images require a `LOCALSTACK_AUTH_TOKEN` in the container's environment.
 
 ## API (Lambda)

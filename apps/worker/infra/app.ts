@@ -17,7 +17,13 @@ if (!STAGES.includes(stage)) {
 // passed in. cdk.json has none yet; override with --context tableNames='{...}'.
 const tableNames = app.node.tryGetContext("tableNames") as TableNames;
 
+// Origins the web app is served from, passed to the files bucket's CORS
+// config. Override with --context allowedOrigins='["https://app.example.com"]'.
+const allowedOrigins = (app.node.tryGetContext("allowedOrigins") as
+  string[] | undefined) ?? ["http://localhost:5173"];
+
 new JobsStack(app, "Jobs", {
   stage,
   tableNames,
+  allowedOrigins,
 });
