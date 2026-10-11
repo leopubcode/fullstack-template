@@ -11,6 +11,10 @@
       "import": "./dist/index.cjs",
       "require": "./dist/index.cjs",
       "default": "./dist/index.cjs"
+    },
+    "./infra": {
+      "types": "./infra/index.ts",
+      "default": "./infra/index.ts"
     }
   },
   "files": [
@@ -21,16 +25,23 @@
     "build": "node ./esbuild.config.js",
     "build:watch": "WATCH_MODE=true npm run build",
     "check-types": "tsc",
-    "lint": "eslint 'src/**/*.ts'",
-    "format": "prettier --write \"src/**/*.ts\" --log-level warn",
+    "lint": "eslint 'src/**/*.ts' 'infra/**/*.ts'",
+    "format": "prettier --write \"{src,infra}/**/*.ts\" --log-level warn",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:setup": "dotenv -- tsx src/storage/setup.ts"
+    "cdk:bootstrap:local": "cdklocal bootstrap --context stage=local",
+    "cdk:deploy:local": "cdklocal deploy --context stage=local --require-approval never --outputs-file cdk-outputs.json",
+    "cdk:synth": "cdk synth --context stage=aws",
+    "cdk:deploy": "cdk deploy --context stage=aws --outputs-file cdk-outputs.json"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
+    "aws-cdk": "^2.1145.0",
+    "aws-cdk-lib": "^2.273.0",
+    "aws-cdk-local": "^3.0.4",
     "aws-sdk-client-mock": "^4.1.0",
+    "constructs": "^10.8.1",
     "dotenv-cli": "^11.0.0",
     "esbuild": "^0.28.2",
     "nodemon": "^3.1.14",

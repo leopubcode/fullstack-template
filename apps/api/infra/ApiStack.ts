@@ -1,24 +1,26 @@
 import { CfnOutput, Duration, Stack } from "aws-cdk-lib";
 import type { StackProps } from "aws-cdk-lib";
 import type { Construct } from "constructs";
-import { ApiFunction, type TableNames } from "./ApiFunction";
+import { ResourceAccess, SharedResources } from "@repo/core/infra";
+import { ApiFunction } from "./ApiFunction";
 
 export type Stage = "local" | "aws";
 
 export interface ApiStackProps extends StackProps {
   stage: Stage;
-  tableNames: TableNames;
   allowedOrigins: string[];
 }
 
-// The same stack deploys to LocalStack (cdklocal) and AWS (cdk); the stage
-// only toggles stage-specific settings.
+// The API's runtime. The resources it uses live in core's Resources stack,
+// which must be deployed first. The same stack deploys to LocalStack
+// (cdklocal) and AWS (cdk); the stage only toggles stage-specific settings.
 export class ApiStack extends Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
+    const resources = new SharedResources(this, "Resources");
+
     const api = new ApiFunction(this, "Api", {
-      tableNames: props.tableNames,
       timeout: Duration.seconds(30),
       allowedOrigins: props.allowedOrigins,
       // tRPC puts stack traces in error responses unless NODE_ENV is
@@ -32,6 +34,15 @@ export class ApiStack extends Stack {
               AWS_ENDPOINT_URL_S3: "http://s3.localhost.localstack.cloud:4566",
             }
           : { NODE_ENV: "production" },
+    });
+
+    new ResourceAccess(this, "ApiAccess", {
+      function: api.function,
+      accesses: [
+        resources.users.readWrite,
+        resources.jobQueue.addJobs,
+        resources.files.upload,
+      ],
     });
 
     // The web app's VITE_API_URL (see the README).

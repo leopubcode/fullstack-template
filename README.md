@@ -74,29 +74,45 @@ npm run dev --workspace=@repo/api                         # local server on :400
 npm run dev --workspace=@repo/web
 ```
 
-## Worker (SQS + Lambda)
+## Infrastructure
 
-`apps/worker` runs jobs from an SQS queue on Lambda. A job with a `runAt` becomes a one-time EventBridge Scheduler schedule that sends it to the queue when due. The infrastructure is a CDK stack that deploys to LocalStack (`stage=local`) or AWS (`stage=aws`).
+Every stack is CDK and deploys to LocalStack (`stage=local`) or AWS (`stage=aws`). The infra is split three ways:
 
-Running it locally:
+- **Resources**: `packages/core/infra` holds the `Resources` stack: the Users table, the job queue and scheduler, and the files bucket. It writes each resource's name or ARN to an SSM parameter under `/resources/` and knows nothing about who uses them.
+- **Compute**: each app defines only its own Lambda runtime (`apps/api/infra/ApiFunction.ts`, `apps/worker/infra/JobWorker.ts`).
+- **Access**: each app stack looks the resources up with `SharedResources` and gives its Lambda what it needs with one `ResourceAccess` (both from `@repo/core/infra`). Each access, e.g. `resources.files.upload`, sets the env vars core's config reads (`ENV` in `packages/core/src/config.ts`) and the IAM rights that use needs.
+
+Deploy the `Resources` stack first; the `Jobs` and `Api` stacks then deploy in either order. Locally:
 
 ```sh
 docker compose up -d                                     # LocalStack on :4566
-cp packages/core/.env.example packages/core/.env
-npm run db:setup                                         # creates the DynamoDB tables (safe to re-run)
-npm run cdk:bootstrap:local --workspace=@repo/worker     # once per LocalStack volume
-npm run cdk:deploy:local --workspace=@repo/worker        # builds, deploys, writes apps/worker/cdk-outputs.json
+npm run cdk:bootstrap:local --workspace=@repo/core       # once per LocalStack volume
+npm run cdk:deploy:local --workspace=@repo/core          # writes packages/core/cdk-outputs.json
+```
+
+`packages/core/cdk-outputs.json` holds the values the local env files need (`USERS_TABLE_NAME`, the `JOB_*` values, `FILES_BUCKET_NAME`).
+
+A LocalStack volume used before this layout still has the old `Users` table (from the removed `db:setup`) and the resources the `Jobs` stack used to own. Recreate the volume (`docker compose down -v`) to start clean. On AWS, the old `Jobs` stack's resources are retained and orphaned rather than migrated.
+
+## Worker (SQS + Lambda)
+
+`apps/worker` runs jobs from an SQS queue on Lambda. A job with a `runAt` becomes a one-time EventBridge Scheduler schedule that sends it to the queue when due.
+
+Running it locally, after deploying the `Resources` stack:
+
+```sh
+npm run cdk:deploy:local --workspace=@repo/worker        # builds and deploys the worker Lambda
 cp apps/worker/.env.example apps/worker/.env             # then fill in JOB_SCHEDULE_GROUP_NAME
 npm run local-scheduler --workspace=@repo/worker
 ```
 
 LocalStack stores schedules but never fires them, so `local-scheduler` polls the schedule group and sends each due job to the queue itself.
 
-Anything that adds jobs needs `JOB_QUEUE_ARN`, `JOB_QUEUE_URL`, `JOB_SCHEDULE_GROUP_NAME` and `JOB_SCHEDULER_ROLE_ARN`, all of which are stack outputs in `cdk-outputs.json`. The CDK stack sets them for the worker. The API's local server reads them from `apps/api/.env` (copy `apps/api/.env.example`) and won't start without them; the deployed API Lambda imports them from the `Jobs` stack.
+The worker's batch timeout is `JOB_WORKER_MAX_TIMEOUT` from `@repo/core/infra`. The queue's visibility timeout is six times it, so a worker must not run longer.
 
 ## Files (S3)
 
-The `Jobs` stack also owns the files bucket, because it deploys first and the API imports from it. Its name is the `FilesBucketName` output, which every app reads as `FILES_BUCKET_NAME`. The API hands out presigned PUT URLs so the browser uploads straight to the bucket. Only the API can write to the bucket; the bucket's CORS allows PUT from the same `allowedOrigins` (default `http://localhost:5173`, override with `--context allowedOrigins='[...]'` on the worker's deploy).
+The files bucket lives in the `Resources` stack. The API hands out presigned PUT URLs so the browser uploads straight to the bucket, and only the API is granted write access (`resources.files.upload`). The worker gets only the bucket's name (`resources.files.reference`), because core's `loadConfig` requires it. The bucket's CORS allows PUT from `allowedOrigins` (default `http://localhost:5173`; override with `--context allowedOrigins='[...]'` on core's deploy).
 
 On LocalStack, presigned URLs must be signed for `s3.localhost.localstack.cloud`: LocalStack doesn't route the `<bucket>.localhost` host the SDK would sign for with only `AWS_ENDPOINT_URL`. `apps/api/.env.example` sets `AWS_ENDPOINT_URL_S3` for the local server, and the API stack sets it on the Lambda when `stage=local`. That host resolves to `127.0.0.1` through public DNS, so a router with DNS-rebinding protection may block it.
 
@@ -104,15 +120,13 @@ On LocalStack, presigned URLs must be signed for `s3.localhost.localstack.cloud`
 
 ## API (Lambda)
 
-`apps/api` serves the tRPC router from a Lambda behind a public Function URL (`src/lambda.ts`). Procedures are served from the URL's root, e.g. `POST <ApiUrl>/submitTestJob`, so the web app's `VITE_API_URL` is the bare URL with no `/trpc` suffix. The infrastructure is a CDK stack that, like the worker's, deploys to LocalStack (`stage=local`) or AWS (`stage=aws`).
+`apps/api` serves the tRPC router from a Lambda behind a public Function URL (`src/lambda.ts`). Procedures are served from the URL's root, e.g. `POST <ApiUrl>/submitTestJob`, so the web app's `VITE_API_URL` is the bare URL with no `/trpc` suffix.
 
-For day-to-day development, `npm run dev --workspace=@repo/api` serves the same handler on `http://localhost:4000` by turning each HTTP request into a Function URL event. It reads `apps/api/.env` and talks to LocalStack.
+For day-to-day development, `npm run dev --workspace=@repo/api` serves the same handler on `http://localhost:4000` by turning each HTTP request into a Function URL event. It reads `apps/api/.env` (copy `apps/api/.env.example` and fill it in from `packages/core/cdk-outputs.json`) and talks to LocalStack.
 
-To deploy the Lambda, deploy the worker first, because the API stack imports the job queue and scheduler from the `Jobs` stack's exports:
+To deploy the Lambda, after deploying the `Resources` stack:
 
 ```sh
-npm run cdk:deploy:local --workspace=@repo/worker
-npm run cdk:bootstrap:local --workspace=@repo/api        # only needed if the worker hasn't bootstrapped this LocalStack volume
 npm run cdk:deploy:local --workspace=@repo/api           # writes apps/api/cdk-outputs.json
 cp apps/web/.env.example apps/web/.env                   # then set VITE_API_URL to the ApiUrl output
 ```

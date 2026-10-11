@@ -1,5 +1,16 @@
 export type Env = Record<string, string | undefined>;
 
+// The env var each config value is read from. The infra's resource accesses
+// (infra/SharedResources.ts) set these same names on a Lambda.
+export const ENV = {
+  jobQueueArn: "JOB_QUEUE_ARN",
+  jobQueueUrl: "JOB_QUEUE_URL",
+  jobScheduleGroupName: "JOB_SCHEDULE_GROUP_NAME",
+  jobSchedulerRoleArn: "JOB_SCHEDULER_ROLE_ARN",
+  usersTableName: "USERS_TABLE_NAME",
+  filesBucketName: "FILES_BUCKET_NAME",
+} as const;
+
 export interface AwsJobQueueConfig {
   queueArn: string;
   queueUrl: string;
@@ -9,10 +20,10 @@ export interface AwsJobQueueConfig {
 
 export function loadJobQueueConfig(env: Env): AwsJobQueueConfig {
   return {
-    queueArn: requireEnv(env, "JOB_QUEUE_ARN"),
-    queueUrl: requireEnv(env, "JOB_QUEUE_URL"),
-    scheduleGroupName: requireEnv(env, "JOB_SCHEDULE_GROUP_NAME"),
-    schedulerRoleArn: requireEnv(env, "JOB_SCHEDULER_ROLE_ARN"),
+    queueArn: requireEnv(env, ENV.jobQueueArn),
+    queueUrl: requireEnv(env, ENV.jobQueueUrl),
+    scheduleGroupName: requireEnv(env, ENV.jobScheduleGroupName),
+    schedulerRoleArn: requireEnv(env, ENV.jobSchedulerRoleArn),
   };
 }
 
@@ -30,7 +41,7 @@ export interface TablesConfig {
 
 export function loadTablesConfig(env: Env): TablesConfig {
   return {
-    users: requireEnv(env, "USERS_TABLE_NAME"),
+    users: requireEnv(env, ENV.usersTableName),
   };
 }
 
@@ -40,7 +51,7 @@ export interface FilesConfig {
 
 export function loadFilesConfig(env: Env): FilesConfig {
   return {
-    bucketName: requireEnv(env, "FILES_BUCKET_NAME"),
+    bucketName: requireEnv(env, ENV.filesBucketName),
   };
 }
 

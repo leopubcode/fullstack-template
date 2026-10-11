@@ -9,7 +9,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["src/**/__tests__/**/*.test.ts"],
+    include: ["{src,infra}/**/__tests__/**/*.test.ts"],
     environment: "node",
   },
 });
