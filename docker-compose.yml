@@ -1,0 +1,21 @@
+services:
+  localstack:
+    # Pinned to the last community release that runs without an account.
+    # Later images need LOCALSTACK_AUTH_TOKEN (see the README).
+    image: localstack/localstack:4.14.0
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - PERSISTENCE=1
+      # Run the ARM64 worker Lambda on the host's own architecture.
+      - LAMBDA_IGNORE_ARCHITECTURE=1
+    volumes:
+      # A named volume, not a host directory: DynamoDB's SQLite files can't
+      # be written reliably through a bind mount.
+      - localstack-data:/var/lib/localstack
+      # Lets LocalStack run the worker Lambda in its own container.
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  localstack-data:

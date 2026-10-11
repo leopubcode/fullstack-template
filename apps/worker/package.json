@@ -1,0 +1,45 @@
+{
+  "name": "@repo/worker",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "UNLICENSED",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "node ./esbuild.config.js",
+    "build:watch": "WATCH_MODE=true npm run build",
+    "check-types": "tsc",
+    "lint": "eslint 'src/**/*.ts' 'infra/**/*.ts' 'scripts/**/*.ts'",
+    "format": "prettier --write \"{src,infra,scripts}/**/*.ts\" --log-level warn",
+    "test": "vitest run",
+    "cdk:bootstrap:local": "cdklocal bootstrap --context stage=local",
+    "cdk:deploy:local": "turbo run build --filter=@repo/worker && cdklocal deploy --context stage=local --require-approval never --outputs-file cdk-outputs.json",
+    "cdk:synth": "turbo run build --filter=@repo/worker && cdk synth --context stage=aws",
+    "cdk:deploy": "turbo run build --filter=@repo/worker && cdk deploy --context stage=aws --outputs-file cdk-outputs.json",
+    "local-scheduler": "dotenv -- tsx scripts/local-scheduler.ts"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/aws-lambda": "^8.10.164",
+    "@types/node": "^26.x.x",
+    "aws-cdk": "^2.1144.0",
+    "aws-cdk-lib": "^2.272.0",
+    "aws-cdk-local": "^3.0.4",
+    "aws-sdk-client-mock": "^4.1.0",
+    "constructs": "^10.8.1",
+    "dotenv-cli": "^11.0.0",
+    "esbuild": "^0.28.2",
+    "globals": "^17.3.0",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-scheduler": "^3.1145.0",
+    "@aws-sdk/client-sqs": "^3.1145.0",
+    "@repo/core": "*"
+  }
+}

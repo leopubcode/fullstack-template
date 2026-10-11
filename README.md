@@ -74,3 +74,23 @@ npm run build:watch --workspace=@repo/api
 npm run dev --workspace=@repo/api
 npm run dev --workspace=@repo/web
 ```
+
+## Worker (SQS + Lambda)
+
+`apps/worker` runs jobs from an SQS queue on Lambda. A job with a `runAt` becomes a one-time EventBridge Scheduler schedule that sends it to the queue when due. The infrastructure is a CDK stack that deploys to LocalStack (`stage=local`) or AWS (`stage=aws`).
+
+Running it locally:
+
+```sh
+docker compose up -d                                     # LocalStack on :4566
+npm run cdk:bootstrap:local --workspace=@repo/worker     # once per LocalStack volume
+npm run cdk:deploy:local --workspace=@repo/worker        # builds, deploys, writes apps/worker/cdk-outputs.json
+cp apps/worker/.env.example apps/worker/.env             # then fill in JOB_SCHEDULE_GROUP_NAME
+npm run local-scheduler --workspace=@repo/worker
+```
+
+LocalStack stores schedules but never fires them, so `local-scheduler` polls the schedule group and sends each due job to the queue itself.
+
+Anything that adds jobs needs `JOB_QUEUE_ARN`, `JOB_QUEUE_URL`, `JOB_SCHEDULE_GROUP_NAME` and `JOB_SCHEDULER_ROLE_ARN`, all of which are stack outputs in `cdk-outputs.json`. The CDK stack sets them for the worker. The API reads them from `apps/api/.env` (copy `apps/api/.env.example`) and won't start without them.
+
+`docker-compose.yml` pins `localstack/localstack:4.14.0`. Later images require a `LOCALSTACK_AUTH_TOKEN` in the container's environment.

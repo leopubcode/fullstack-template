@@ -1,8 +1,5 @@
 import { initTRPC } from "@trpc/server";
-
-export interface AppContext {
-  test: number;
-}
+import type { AppContext } from "./context";
 
 const t = initTRPC.context<AppContext>().create();
 

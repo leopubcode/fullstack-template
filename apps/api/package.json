@@ -11,7 +11,7 @@
     "dev": "dotenv -- nodemon dist/index.cjs",
     "build": "node ./esbuild.config.js",
     "build:watch": "WATCH_MODE=true npm run build",
-    "type-check": "tsc",
+    "check-types": "tsc",
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --write \"src/**/*.ts\" --log-level warn"
   },
