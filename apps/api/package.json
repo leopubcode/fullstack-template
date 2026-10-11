@@ -3,35 +3,40 @@
   "version": "0.0.0",
   "type": "module",
   "license": "UNLICENSED",
-  "main": "./src/index.ts",
   "files": [
     "dist/**"
   ],
   "scripts": {
-    "dev": "dotenv -- nodemon dist/index.cjs",
+    "dev": "dotenv -- tsx watch scripts/local-server.ts",
     "build": "node ./esbuild.config.js",
     "build:watch": "WATCH_MODE=true npm run build",
     "check-types": "tsc",
-    "lint": "eslint 'src/**/*.ts'",
-    "format": "prettier --write \"src/**/*.ts\" --log-level warn"
+    "lint": "eslint 'src/**/*.ts' 'infra/**/*.ts' 'scripts/**/*.ts'",
+    "format": "prettier --write \"{src,infra,scripts}/**/*.ts\" --log-level warn",
+    "test": "vitest run",
+    "cdk:bootstrap:local": "cdklocal bootstrap --context stage=local",
+    "cdk:deploy:local": "turbo run build --filter=@repo/api && cdklocal deploy --context stage=local --require-approval never --outputs-file cdk-outputs.json",
+    "cdk:synth": "turbo run build --filter=@repo/api && cdk synth --context stage=aws",
+    "cdk:deploy": "turbo run build --filter=@repo/api && cdk deploy --context stage=aws --outputs-file cdk-outputs.json"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
+    "@types/aws-lambda": "^8.10.164",
     "@types/node": "^26.x.x",
+    "aws-cdk": "^2.1144.0",
+    "aws-cdk-lib": "^2.272.0",
+    "aws-cdk-local": "^3.0.4",
+    "constructs": "^10.8.1",
     "dotenv-cli": "^11.0.0",
     "esbuild": "^0.28.2",
     "globals": "^17.13.0",
-    "nodemon": "^3.1.14",
-    "typescript": "6.0.3"
+    "tsx": "^4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "^5.0.3"
   },
   "dependencies": {
     "@repo/core": "*",
-    "@repo/utils": "*",
-    "cors": "^2.8.6",
-    "esbuild-plugin-noexternal": "^0.1.6",
-    "express": "^5.3.0"
+    "@trpc/server": "^11.19.0"
   }
 }

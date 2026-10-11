@@ -1,15 +1,17 @@
 import esbuild from "esbuild";
-import externalizeAllPackagesExcept from "esbuild-plugin-noexternal";
 
 async function run() {
+  // Lambda gets only dist/ (see infra/ApiFunction.ts), so every dependency is
+  // bundled in.
   const options = {
-    entryPoints: ["./src/index.ts"],
+    entryPoints: ["./src/lambda.ts"],
     bundle: true,
+    platform: "node",
+    format: "cjs",
     outdir: "dist",
     entryNames: "[name]",
     outExtension: { ".js": ".cjs" },
-    target: "node20",
-    plugins: [externalizeAllPackagesExcept(["@repo/utils"])],
+    target: "node24",
   };
 
   if (process.env.WATCH_MODE) {
@@ -24,4 +26,3 @@ run().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-// "build": "esbuild ./src/index.ts --bundle --platform=node --packages=external --outfile=dist/index.cjs --target=node20",

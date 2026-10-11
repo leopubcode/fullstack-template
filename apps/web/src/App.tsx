@@ -58,7 +58,8 @@ export function App() {
     createTRPCClient<AppRouter>({
       links: [
         httpBatchLink({
-          url: "http://localhost:4000/trpc",
+          // The API serves procedures from its root (see apps/api).
+          url: import.meta.env.VITE_API_URL ?? "http://localhost:4000",
         }),
       ],
     }),

@@ -46,14 +46,23 @@ export class JobsStack extends Stack {
           : {},
     });
 
-    // The API's and the local scheduler's env take these (see the README).
-    new CfnOutput(this, "JobQueueArn", { value: queue.queueArn });
-    new CfnOutput(this, "JobQueueUrl", { value: queue.queueUrl });
+    // The local scheduler's env takes these (see the README). The API stack
+    // imports them by export name (see apps/api/infra/jobsExports.ts).
+    new CfnOutput(this, "JobQueueArn", {
+      value: queue.queueArn,
+      exportName: "Jobs-QueueArn",
+    });
+    new CfnOutput(this, "JobQueueUrl", {
+      value: queue.queueUrl,
+      exportName: "Jobs-QueueUrl",
+    });
     new CfnOutput(this, "JobScheduleGroupName", {
       value: scheduler.scheduleGroup.scheduleGroupName,
+      exportName: "Jobs-ScheduleGroupName",
     });
     new CfnOutput(this, "JobSchedulerRoleArn", {
       value: scheduler.role.roleArn,
+      exportName: "Jobs-SchedulerRoleArn",
     });
   }
 }

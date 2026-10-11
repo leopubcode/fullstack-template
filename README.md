@@ -2,7 +2,7 @@
 
 A template to start a new monorepo project using TurboRepo, npm, React, Vite, TypeScript, Tailwind, React Router. Then on the backend, Node, Express, tRPC, and database is left out of the tech stack, just choose your own.
 
-The core project currently exports a tRPC router, however it can be changed to simply export functions or classes that perform the business logic as a service layer. This core project can be imported into other node.js project. In this case, it is mainly used in the API app, which is a very basic Express API wrapper that exposes a tRPC server. However, it can also be used to create a GraphQL API, a WebSocket API, or REST API. It can also be imported into worker projects, scripts, or CLI or any type of Node project. You could choose to keep the core project just a service layer without coupling it with the tRPC layer, however I decided to keep things simple and made core export a tRPC router.
+The core project currently exports a tRPC router, however it can be changed to simply export functions or classes that perform the business logic as a service layer. This core project can be imported into other node.js project. In this case, it is mainly used in the API app, which exposes the tRPC router as a Lambda behind a Function URL. However, it can also be used to create a GraphQL API, a WebSocket API, or REST API. It can also be imported into worker projects, scripts, or CLI or any type of Node project. You could choose to keep the core project just a service layer without coupling it with the tRPC layer, however I decided to keep things simple and made core export a tRPC router.
 
 If you choose to use multiple clients, you can create your own component library and import it into multiple web apps. However, I did not add a components project since not all projects need them.
 
@@ -70,8 +70,7 @@ If you want to build something that can scale but without being vendor locked-in
 ```sh
 npm run build:watch --workspace=@repo/utils
 npm run build:watch --workspace=@repo/core
-npm run build:watch --workspace=@repo/api
-npm run dev --workspace=@repo/api
+npm run dev --workspace=@repo/api                         # local server on :4000, see "API (Lambda)"
 npm run dev --workspace=@repo/web
 ```
 
@@ -93,6 +92,23 @@ npm run local-scheduler --workspace=@repo/worker
 
 LocalStack stores schedules but never fires them, so `local-scheduler` polls the schedule group and sends each due job to the queue itself.
 
-Anything that adds jobs needs `JOB_QUEUE_ARN`, `JOB_QUEUE_URL`, `JOB_SCHEDULE_GROUP_NAME` and `JOB_SCHEDULER_ROLE_ARN`, all of which are stack outputs in `cdk-outputs.json`. The CDK stack sets them for the worker. The API reads them from `apps/api/.env` (copy `apps/api/.env.example`) and won't start without them.
+Anything that adds jobs needs `JOB_QUEUE_ARN`, `JOB_QUEUE_URL`, `JOB_SCHEDULE_GROUP_NAME` and `JOB_SCHEDULER_ROLE_ARN`, all of which are stack outputs in `cdk-outputs.json`. The CDK stack sets them for the worker. The API's local server reads them from `apps/api/.env` (copy `apps/api/.env.example`) and won't start without them; the deployed API Lambda imports them from the `Jobs` stack.
 
 `docker-compose.yml` pins `localstack/localstack:4.14.0`. Later images require a `LOCALSTACK_AUTH_TOKEN` in the container's environment.
+
+## API (Lambda)
+
+`apps/api` serves the tRPC router from a Lambda behind a public Function URL (`src/lambda.ts`). Procedures are served from the URL's root, e.g. `POST <ApiUrl>/submitTestJob`, so the web app's `VITE_API_URL` is the bare URL with no `/trpc` suffix. The infrastructure is a CDK stack that, like the worker's, deploys to LocalStack (`stage=local`) or AWS (`stage=aws`).
+
+For day-to-day development, `npm run dev --workspace=@repo/api` serves the same handler on `http://localhost:4000` by turning each HTTP request into a Function URL event. It reads `apps/api/.env` and talks to LocalStack.
+
+To deploy the Lambda, deploy the worker first, because the API stack imports the job queue and scheduler from the `Jobs` stack's exports:
+
+```sh
+npm run cdk:deploy:local --workspace=@repo/worker
+npm run cdk:bootstrap:local --workspace=@repo/api        # only needed if the worker hasn't bootstrapped this LocalStack volume
+npm run cdk:deploy:local --workspace=@repo/api           # writes apps/api/cdk-outputs.json
+cp apps/web/.env.example apps/web/.env                   # then set VITE_API_URL to the ApiUrl output
+```
+
+The Function URL has no auth: anyone with the URL can call every procedure. CORS allows `http://localhost:5173` by default; pass `--context allowedOrigins='["https://app.example.com"]'` to change it.
