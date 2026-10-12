@@ -33,7 +33,8 @@ export class ApiFunction extends Construct {
       environment: props.environment,
     });
 
-    // No auth yet: anyone with the URL can call every procedure.
+    // Public URL: the app authenticates callers itself, from the bearer token
+    // its protected procedures require.
     this.url = this.function.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {

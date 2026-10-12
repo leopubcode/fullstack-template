@@ -32,6 +32,10 @@ export class ApiStack extends Stack {
               // Presigned URLs must name a host both this Lambda and the
               // browser resolve to LocalStack (see s3ClientInstance.ts).
               AWS_ENDPOINT_URL_S3: "http://s3.localhost.localstack.cloud:4566",
+              // cognito-local runs beside LocalStack, not inside it. The
+              // tokens' issuer must resolve from here too (see the README).
+              AWS_ENDPOINT_URL_COGNITO_IDENTITY_PROVIDER:
+                "http://host.docker.internal:9229",
             }
           : { NODE_ENV: "production" },
     });
@@ -42,6 +46,7 @@ export class ApiStack extends Stack {
         resources.users.readWrite,
         resources.jobQueue.addJobs,
         resources.files.upload,
+        resources.identity.authenticate,
       ],
     });
 

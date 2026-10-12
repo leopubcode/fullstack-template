@@ -38,6 +38,7 @@ export class JobsStack extends Stack {
         // A job may add further jobs.
         resources.jobQueue.addJobs,
         resources.files.reference,
+        resources.identity.reference,
       ],
     });
   }

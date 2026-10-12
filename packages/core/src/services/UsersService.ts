@@ -8,8 +8,16 @@ export class UsersService {
     private readonly model: UserModel = new UserModel(),
   ) {}
 
-  async signUp(input: { displayName: string }): Promise<User> {
-    const user = this.model.createCustomer(input.displayName);
+  async createCustomer(input: {
+    id: string;
+    email: string;
+    displayName: string;
+  }): Promise<User> {
+    const user = this.model.createCustomer(
+      input.id,
+      input.email,
+      input.displayName,
+    );
     await this.repository.create(user);
     return user;
   }

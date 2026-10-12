@@ -1,5 +1,5 @@
 import { App } from "aws-cdk-lib";
-import { Template } from "aws-cdk-lib/assertions";
+import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
 import { PARAMETERS } from "../parameters";
 import { ResourcesStack } from "../ResourcesStack";
@@ -9,6 +9,11 @@ const template = (stage: "local" | "aws") =>
     new ResourcesStack(new App(), "Resources", {
       stage,
       allowedOrigins: ["https://app.example.com"],
+      localUserPool: {
+        userPoolId: "local_pool",
+        clientId: "local-client",
+        issuerUrl: "http://localhost:9229/local_pool",
+      },
     }),
   );
 
@@ -40,12 +45,39 @@ describe("the Resources stack", () => {
     });
   });
 
-  it("writes one SSM parameter per shared value", () => {
-    const names = Object.values(
-      template("local").findResources("AWS::SSM::Parameter"),
-    ).map((resource) => resource.Properties.Name);
+  it.each(["local", "aws"] as const)(
+    "writes one SSM parameter per shared value (%s)",
+    (stage) => {
+      const names = Object.values(
+        template(stage).findResources("AWS::SSM::Parameter"),
+      ).map((resource) => resource.Properties.Name);
 
-    expect(names.sort()).toEqual(Object.values(PARAMETERS).sort());
+      expect(names.sort()).toEqual(Object.values(PARAMETERS).sort());
+    },
+  );
+
+  it("creates a user pool with a public password-flow client on AWS", () => {
+    const t = template("aws");
+    t.hasResourceProperties("AWS::Cognito::UserPool", {
+      UsernameAttributes: ["email"],
+      AutoVerifiedAttributes: ["email"],
+    });
+    t.hasResourceProperties("AWS::Cognito::UserPoolClient", {
+      GenerateSecret: false,
+      ExplicitAuthFlows: Match.arrayWith([
+        "ALLOW_USER_PASSWORD_AUTH",
+        "ALLOW_REFRESH_TOKEN_AUTH",
+      ]),
+    });
+  });
+
+  it("publishes the cognito-local pool instead of creating one locally", () => {
+    const t = template("local");
+    t.resourceCountIs("AWS::Cognito::UserPool", 0);
+    t.hasResourceProperties("AWS::SSM::Parameter", {
+      Name: PARAMETERS.userPoolIssuerUrl,
+      Value: "http://localhost:9229/local_pool",
+    });
   });
 
   it("retains data on AWS and destroys it locally", () => {

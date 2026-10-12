@@ -78,14 +78,15 @@ npm run dev --workspace=@repo/web
 
 Every stack is CDK and deploys to LocalStack (`stage=local`) or AWS (`stage=aws`). The infra is split three ways:
 
-- **Resources**: `packages/core/infra` holds the `Resources` stack: the Users table, the job queue and scheduler, and the files bucket. It writes each resource's name or ARN to an SSM parameter under `/resources/` and knows nothing about who uses them.
+- **Resources**: `packages/core/infra` holds the `Resources` stack: the Users table, the job queue and scheduler, the files bucket, and the Cognito user pool. It writes each resource's name or ARN to an SSM parameter under `/resources/` and knows nothing about who uses them.
 - **Compute**: each app defines only its own Lambda runtime (`apps/api/infra/ApiFunction.ts`, `apps/worker/infra/JobWorker.ts`).
 - **Access**: each app stack looks the resources up with `SharedResources` and gives its Lambda what it needs with one `ResourceAccess` (both from `@repo/core/infra`). Each access, e.g. `resources.files.upload`, sets the env vars core's config reads (`ENV` in `packages/core/src/config.ts`) and the IAM rights that use needs.
 
 Deploy the `Resources` stack first; the `Jobs` and `Api` stacks then deploy in either order. Locally:
 
 ```sh
-docker compose up -d                                     # LocalStack on :4566
+docker compose up -d                                     # LocalStack on :4566, cognito-local on :9229
+npm run setup:cognito-local --workspace=@repo/core       # once per .cognito/db, see "Auth (Cognito)"
 npm run cdk:bootstrap:local --workspace=@repo/core       # once per LocalStack volume
 npm run cdk:deploy:local --workspace=@repo/core          # writes packages/core/cdk-outputs.json
 ```
@@ -131,4 +132,20 @@ npm run cdk:deploy:local --workspace=@repo/api           # writes apps/api/cdk-o
 cp apps/web/.env.example apps/web/.env                   # then set VITE_API_URL to the ApiUrl output
 ```
 
-The Function URL has no auth: anyone with the URL can call every procedure. CORS allows `http://localhost:5173` by default; pass `--context allowedOrigins='["https://app.example.com"]'` to change it.
+The Function URL itself is public; the app authenticates callers from their bearer token (see "Auth (Cognito)"). CORS allows `http://localhost:5173` by default; pass `--context allowedOrigins='["https://app.example.com"]'` to change it.
+
+## Auth (Cognito)
+
+Users sign up with an email and password, confirm the email with a code, then sign in for JWTs. The web app keeps the tokens in `localStorage` and sends the access token as `Authorization: Bearer <token>`.
+
+Cognito is just one implementation of core's `IdentityProvider` contract (`packages/core/src/domain/identity/identityProvider.ts`):
+
+- **Client**: `CognitoIdentityProviderClient` is the only file that imports the Cognito SDK, and it maps Cognito's errors to the domain errors in `domain/identity/errors.ts`. It verifies access tokens against the issuer's JWKS with [`jose`](https://github.com/panva/jose), so it works with any OIDC issuer. Swapping in Keycloak or Auth0 means writing another Client; services and transports don't change.
+- **Service**: `AuthService` orchestrates the identity provider and `UsersService`. A user's id is their identity's `sub`, and the user record is created at sign-up.
+- **Transport**: the `auth` router has `signUp`, `confirmSignUp`, `resendConfirmationCode`, `signIn`, `refresh`, `signOut` and `me`. `protectedProcedure` (in `src/trpc.ts`) resolves the caller to `ctx.user`, or answers `UNAUTHORIZED`. Domain errors map to tRPC codes in one place: `CONFLICT` (account exists), `PRECONDITION_FAILED` (not confirmed), `BAD_REQUEST` (code or password policy), `UNAUTHORIZED` (credentials or token).
+- **Web**: `useAuth()` (from `apps/web/src/auth`) returns `{ status, user, signUp, confirmSignUp, resendConfirmationCode, signIn, signOut }`. `RequireAuth` guards a route. The tRPC client refreshes the access token once on an `UNAUTHORIZED` and retries, and signs out if the refresh token is rejected too.
+- **Sign-out** revokes the session's refresh token (`RevokeToken`). Access tokens already issued stay valid until they expire (an hour by default), because they're verified locally.
+
+On AWS, the `Resources` stack creates the user pool and a public client (no secret, password and refresh flows), and the API gets the pool's ids through `resources.identity.authenticate`. That access is env-only: these Cognito APIs need no IAM.
+
+Locally, Cognito runs in [cognito-local](https://github.com/jagregory/cognito-local) (in `docker-compose.yml`), because LocalStack's community image has no Cognito. `npm run setup:cognito-local --workspace=@repo/core` creates the pool and client. It writes their ids to `packages/core/cdk.context.json`, where the local `Resources` stack publishes them instead of creating a pool. It also prints the `COGNITO_*` lines for `apps/api/.env`. cognito-local doesn't send email: read the confirmation code from `docker compose logs cognito-local`. `.cognito/config.json` pins the tokens' issuer to `http://localhost:9229`, which the local API server on the host can reach. A Lambda deployed to LocalStack can't reach that issuer, so run the API locally with `npm run dev` when working on auth.

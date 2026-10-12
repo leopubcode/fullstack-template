@@ -37,7 +37,12 @@ const actionsOf = (template: Template): string[] =>
 describe("granting a Lambda access to shared resources", () => {
   it("sets the env var core reads for each access", () => {
     const env = envOf(
-      synth((r) => [r.users.readWrite, r.jobQueue.addJobs, r.files.upload]),
+      synth((r) => [
+        r.users.readWrite,
+        r.jobQueue.addJobs,
+        r.files.upload,
+        r.identity.authenticate,
+      ]),
     );
 
     expect(Object.keys(env).sort()).toEqual(Object.values(ENV).sort());
@@ -82,6 +87,15 @@ describe("granting a Lambda access to shared resources", () => {
     const template = synth((r) => [r.files.reference]);
 
     expect(Object.keys(envOf(template))).toEqual([ENV.filesBucketName]);
+    template.resourceCountIs("AWS::IAM::Policy", 0);
+  });
+
+  it("grants nothing to authenticate users, only the pool's env vars", () => {
+    const template = synth((r) => [r.identity.authenticate]);
+
+    expect(Object.keys(envOf(template)).sort()).toEqual(
+      [ENV.cognitoClientId, ENV.cognitoIssuerUrl, ENV.cognitoUserPoolId].sort(),
+    );
     template.resourceCountIs("AWS::IAM::Policy", 0);
   });
 });

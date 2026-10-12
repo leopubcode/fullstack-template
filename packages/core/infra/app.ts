@@ -17,4 +17,25 @@ if (!STAGES.includes(stage)) {
 const allowedOrigins = (app.node.tryGetContext("allowedOrigins") as
   string[] | undefined) ?? ["http://localhost:5173"];
 
-new ResourcesStack(app, "Resources", { stage, allowedOrigins });
+// The cognito-local pool, printed by scripts/setup-cognito-local.sh. Only the
+// local stage reads it.
+const localUserPool =
+  stage === "local"
+    ? {
+        userPoolId: requireContext("cognitoLocalUserPoolId"),
+        clientId: requireContext("cognitoLocalClientId"),
+        issuerUrl: requireContext("cognitoLocalIssuerUrl"),
+      }
+    : undefined;
+
+new ResourcesStack(app, "Resources", { stage, allowedOrigins, localUserPool });
+
+function requireContext(key: string): string {
+  const value: unknown = app.node.tryGetContext(key);
+  if (typeof value !== "string" || !value) {
+    throw new Error(
+      `Pass --context ${key}=<value> (see scripts/setup-cognito-local.sh)`,
+    );
+  }
+  return value;
+}

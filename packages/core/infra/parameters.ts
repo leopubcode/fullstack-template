@@ -10,4 +10,7 @@ export const PARAMETERS = {
   jobSchedulerRoleArn: "/resources/job-scheduler-role-arn",
   filesBucketName: "/resources/files-bucket-name",
   filesBucketArn: "/resources/files-bucket-arn",
+  userPoolId: "/resources/user-pool-id",
+  userPoolClientId: "/resources/user-pool-client-id",
+  userPoolIssuerUrl: "/resources/user-pool-issuer-url",
 } as const;

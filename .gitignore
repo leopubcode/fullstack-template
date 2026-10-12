@@ -33,6 +33,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# cognito-local's pools and users (docker-compose). Its config is committed.
+.cognito/db
+
 # Misc
 .DS_Store
 *.pem

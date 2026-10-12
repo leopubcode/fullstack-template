@@ -3,3 +3,5 @@ node_modules
 .env
 cdk.out
 cdk-outputs.json
+# Holds only the ids of the local cognito-local pool (scripts/setup-cognito-local.ts).
+cdk.context.json

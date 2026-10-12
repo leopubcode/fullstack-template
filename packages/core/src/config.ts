@@ -9,6 +9,9 @@ export const ENV = {
   jobSchedulerRoleArn: "JOB_SCHEDULER_ROLE_ARN",
   usersTableName: "USERS_TABLE_NAME",
   filesBucketName: "FILES_BUCKET_NAME",
+  cognitoUserPoolId: "COGNITO_USER_POOL_ID",
+  cognitoClientId: "COGNITO_CLIENT_ID",
+  cognitoIssuerUrl: "COGNITO_ISSUER_URL",
 } as const;
 
 export interface AwsJobQueueConfig {
@@ -55,10 +58,28 @@ export function loadFilesConfig(env: Env): FilesConfig {
   };
 }
 
+export interface CognitoConfig {
+  userPoolId: string;
+  clientId: string;
+  // The tokens' `iss` claim; its JWKS is served under /.well-known/jwks.json.
+  // Explicit rather than derived from the region, so an emulator's issuer
+  // (cognito-local) works too.
+  issuerUrl: string;
+}
+
+export function loadCognitoConfig(env: Env): CognitoConfig {
+  return {
+    userPoolId: requireEnv(env, ENV.cognitoUserPoolId),
+    clientId: requireEnv(env, ENV.cognitoClientId),
+    issuerUrl: requireEnv(env, ENV.cognitoIssuerUrl),
+  };
+}
+
 export interface Config {
   jobQueue: AwsJobQueueConfig;
   tables: TablesConfig;
   files: FilesConfig;
+  identity: CognitoConfig;
 }
 
 export function loadConfig(env: Env): Config {
@@ -66,5 +87,6 @@ export function loadConfig(env: Env): Config {
     jobQueue: loadJobQueueConfig(env),
     tables: loadTablesConfig(env),
     files: loadFilesConfig(env),
+    identity: loadCognitoConfig(env),
   };
 }

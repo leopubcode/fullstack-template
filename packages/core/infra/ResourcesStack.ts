@@ -6,6 +6,7 @@ import { PARAMETERS } from "./parameters";
 import { FilesBucket } from "./resources/FilesBucket";
 import { JobQueue } from "./resources/JobQueue";
 import { JobScheduler } from "./resources/JobScheduler";
+import { UserPool } from "./resources/UserPool";
 import { UsersTable } from "./resources/UsersTable";
 
 export type Stage = "local" | "aws";
@@ -19,6 +20,16 @@ export interface ResourcesStackProps extends StackProps {
   stage: Stage;
   // Origins the web app is served from, allowed to upload to the files bucket.
   allowedOrigins: string[];
+  // Locally, the identity provider is cognito-local, which LocalStack can't
+  // host: pass the pool it created (scripts/setup-cognito-local.sh) instead.
+  // Required on the local stage, ignored on AWS.
+  localUserPool?: ExistingUserPool;
+}
+
+export interface ExistingUserPool {
+  userPoolId: string;
+  clientId: string;
+  issuerUrl: string;
 }
 
 // Every stateful resource the apps share. It knows nothing about who uses
@@ -52,6 +63,8 @@ export class ResourcesStack extends Stack {
       removalPolicy,
     });
 
+    const userPool = userPoolFor(this, props, removalPolicy);
+
     const values: Record<keyof typeof PARAMETERS, string> = {
       usersTableName: usersTable.tableName,
       jobQueueArn: queue.queueArn,
@@ -60,6 +73,9 @@ export class ResourcesStack extends Stack {
       jobSchedulerRoleArn: scheduler.role.roleArn,
       filesBucketName: filesBucket.bucketName,
       filesBucketArn: filesBucket.bucketArn,
+      userPoolId: userPool.userPoolId,
+      userPoolClientId: userPool.clientId,
+      userPoolIssuerUrl: userPool.issuerUrl,
     };
     for (const [key, value] of Object.entries(values)) {
       new ssm.StringParameter(this, `${key}Parameter`, {
@@ -80,5 +96,32 @@ export class ResourcesStack extends Stack {
       value: scheduler.role.roleArn,
     });
     new CfnOutput(this, "FilesBucketName", { value: filesBucket.bucketName });
+    new CfnOutput(this, "UserPoolId", { value: userPool.userPoolId });
+    new CfnOutput(this, "UserPoolClientId", { value: userPool.clientId });
+    new CfnOutput(this, "UserPoolIssuerUrl", { value: userPool.issuerUrl });
   }
+}
+
+// A Cognito user pool on AWS. Locally, the cognito-local pool passed in.
+function userPoolFor(
+  scope: Construct,
+  props: ResourcesStackProps,
+  removalPolicy: RemovalPolicy,
+): ExistingUserPool {
+  if (props.stage === "local") {
+    if (!props.localUserPool) {
+      throw new Error(
+        "The local stage needs localUserPool (see scripts/setup-cognito-local.sh)",
+      );
+    }
+    return props.localUserPool;
+  }
+  const { userPool, client, issuerUrl } = new UserPool(scope, "UserPool", {
+    removalPolicy,
+  });
+  return {
+    userPoolId: userPool.userPoolId,
+    clientId: client.userPoolClientId,
+    issuerUrl,
+  };
 }

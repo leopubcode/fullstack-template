@@ -17,5 +17,15 @@ services:
       # Lets LocalStack run the worker Lambda in its own container.
       - /var/run/docker.sock:/var/run/docker.sock
 
+  # Cognito's API for local dev: LocalStack's community image has no Cognito.
+  # Confirmation codes are printed to this container's log instead of emailed.
+  cognito-local:
+    image: jagregory/cognito-local:latest
+    container_name: cognito-local
+    ports:
+      - "9229:9229"
+    volumes:
+      - ./.cognito:/app/.cognito
+
 volumes:
   localstack-data:

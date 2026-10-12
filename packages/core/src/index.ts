@@ -4,12 +4,15 @@ export type { AppRouter } from "./appRouter";
 export { appRouter } from "./appRouter";
 export type { Job, JobType } from "./domain/jobs/types";
 export type { Role, User } from "./domain/users/types";
+export type { AuthSession, SignUpResult } from "./services/AuthService";
 export type { UsersRepository } from "./domain/users/repository";
 export type { AddJobOptions, JobQueue } from "./domain/jobs/jobQueue";
 export { handleJob, InvalidJobError, jobHandlers } from "./transport/jobs";
 export {
   loadJobQueueConfig,
   type AwsJobQueueConfig,
+  loadCognitoConfig,
+  type CognitoConfig,
   type Env,
   loadConfig,
   loadTablesConfig,

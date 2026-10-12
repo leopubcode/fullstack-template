@@ -20,6 +20,7 @@ const repository = () =>
 
 const user = (id: string): User => ({
   id,
+  email: `${id}@example.com`,
   displayName: `User ${id}`,
   roles: ["Customer"],
 });

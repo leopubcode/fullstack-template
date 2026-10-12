@@ -16,6 +16,7 @@ export class SharedResources extends Construct {
   readonly users: { readWrite: Access };
   readonly jobQueue: { queue: sqs.IQueue; addJobs: Access };
   readonly files: { upload: Access; reference: Access };
+  readonly identity: { authenticate: Access; reference: Access };
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -83,6 +84,20 @@ export class SharedResources extends Construct {
       // The bucket's name only, for a Lambda whose config requires it but
       // which never touches the bucket.
       reference: { env: filesEnv, grant: () => {} },
+    };
+
+    const identityEnv = {
+      [ENV.cognitoUserPoolId]: parameter("userPoolId"),
+      [ENV.cognitoClientId]: parameter("userPoolClientId"),
+      [ENV.cognitoIssuerUrl]: parameter("userPoolIssuerUrl"),
+    };
+    this.identity = {
+      // Signing up, in and out goes through the pool's public client, and
+      // tokens are checked against its public keys: neither needs IAM.
+      authenticate: { env: identityEnv, grant: () => {} },
+      // The pool's ids only, for a Lambda whose config requires them but
+      // which never authenticates anyone.
+      reference: { env: identityEnv, grant: () => {} },
     };
   }
 }
