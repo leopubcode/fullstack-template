@@ -9,7 +9,7 @@ export const Test = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold underline bg-red-400">Hello world!</h1>
-      hey sir {result.data?.map((n) => n.name)}
+      hey sir {result.data?.map((n) => n.displayName)}
     </div>
   );
 };

@@ -20,6 +20,10 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "db:setup": {
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL"]
     }
   }
 }

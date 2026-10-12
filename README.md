@@ -16,7 +16,7 @@ If you don't want to manage infrastructure and don't mind being vendor locked-in
 
 If you want to build something that can scale but without being vendor locked-in and want to start small and on a budget go for:
 
-- Docker Node.js API runtime -> Postgres (supabase) -> Sidequest (Postgres) worker -> S3 storage -> ECS infrastructure -> keycloak auth -> OpenBao
+- Docker Node.js API runtime -> Postgres (supabase) -> Sidequest (Postgres) worker -> S3 storage -> Railway infrastructure -> keycloak auth -> OpenBao
 
 ### APIs:
 
@@ -50,7 +50,7 @@ If you want to build something that can scale but without being vendor locked-in
 
 ### Infrastructure:
 
-- Fly.io
+- Railway
 - ECS
 
 ### Auth:
@@ -74,3 +74,46 @@ npm run build:watch --workspace=@repo/api
 npm run dev --workspace=@repo/api
 npm run dev --workspace=@repo/web
 ```
+
+## Database (Postgres + Drizzle)
+
+`packages/core` stores data in Postgres through [Drizzle](https://orm.drizzle.team) and the `postgres` (postgres.js) driver. The tables are defined in `packages/core/src/storage/postgresSchema.ts`, and `drizzle-kit` generates the SQL migrations in `packages/core/drizzle/` from it. The app reads one variable, `DATABASE_URL`.
+
+Running it locally:
+
+```sh
+docker compose up -d --wait                       # Postgres 18 on :5432
+cp packages/core/.env.example packages/core/.env
+cp apps/api/.env.example apps/api/.env
+npm run db:setup                                  # applies pending migrations (safe to re-run)
+```
+
+After changing the schema, generate a migration and commit it:
+
+```sh
+npm run db:generate --workspace=@repo/core -- --name <what_changed>
+```
+
+Tests don't need a database. Service tests use the in-memory repositories (`createInMemoryStorage`), and the Postgres repository tests run against [PGlite](https://pglite.dev), an in-memory Postgres compiled to WASM, with the real migrations applied.
+
+### Deploying to Supabase
+
+`packages/core/infra/supabase` is a Terraform config that creates a Supabase project with a generated database password and SSL enforced. It outputs the `DATABASE_URL` of the project's transaction pooler.
+
+You need to install terraform:
+
+```sh
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+```
+
+```sh
+cd packages/core/infra/supabase
+export SUPABASE_ACCESS_TOKEN=...                  # https://supabase.com/dashboard/account/tokens
+cp terraform.tfvars.example terraform.tfvars      # then set organization_id from supbase
+terraform init
+terraform apply
+DATABASE_URL="$(terraform output -raw database_url)" npm run db:setup
+```
+
+The state holds the database password, so keep it in a private remote backend for anything shared.

@@ -24,19 +24,26 @@
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --write \"src/**/*.ts\" --log-level warn",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:setup": "dotenv -- drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "dotenv-cli": "^11.0.0",
+    "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
     "nodemon": "^3.1.14",
+    "tsx": "^4.23.15",
     "typescript": "6.0.3",
     "vitest": "^5.0.3"
   },
   "dependencies": {
     "@trpc/server": "^11.19.0",
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^3.4.9",
     "zod": "^4.6.5"
   }
 }
