@@ -54,6 +54,7 @@
     "@sidequest/postgres-backend": "^1.16.6",
     "@trpc/server": "^11.19.0",
     "drizzle-orm": "^0.45.4",
+    "jose": "^6.2.12",
     "postgres": "^3.4.9",
     "sidequest": "^1.16.6",
     "zod": "^4.6.5"

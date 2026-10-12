@@ -1,4 +1,5 @@
 import type { FileProvider } from "./files/fileProvider";
+import type { IdentityProvider } from "./identity/identityProvider";
 import type { JobQueue } from "./jobs/jobQueue";
 import type { UsersRepository } from "./users/repository";
 
@@ -9,4 +10,5 @@ export interface Storage {
   users: UsersRepository;
   jobQueue: JobQueue;
   files: FileProvider;
+  identity: IdentityProvider;
 }

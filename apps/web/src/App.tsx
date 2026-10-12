@@ -1,14 +1,21 @@
 import "./App.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { useState } from "react";
-import type { AppRouter } from "@repo/core";
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthProvider";
+import { RequireAuth } from "./auth/RequireAuth";
+import { tokenStore } from "./auth/tokenStore";
+import { useAuth } from "./auth/useAuth";
 import { TRPCProvider } from "./trpc";
+import { createAppTRPCClient } from "./trpcClient";
 import { Test } from "./Test";
 import { Home } from "./pages/Home";
 import { About } from "./pages/About";
+import { Account } from "./pages/Account";
+import { SignIn } from "./pages/SignIn";
+import { SignUp } from "./pages/SignUp";
 import { Upload } from "./pages/Upload";
+import { VerifyEmail } from "./pages/VerifyEmail";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -30,6 +37,39 @@ function getQueryClient() {
   }
 
   return browserQueryClient;
+}
+
+const navLink =
+  "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium";
+
+function AuthNav() {
+  const { status, user, signOut } = useAuth();
+
+  if (status === "loading") {
+    return null;
+  }
+  if (status === "signedOut") {
+    return (
+      <>
+        <Link to="/signin" className={navLink}>
+          Sign in
+        </Link>
+        <Link to="/signup" className={navLink}>
+          Sign up
+        </Link>
+      </>
+    );
+  }
+  return (
+    <>
+      <Link to="/account" className={navLink}>
+        {user!.email}
+      </Link>
+      <button type="button" onClick={signOut} className={navLink}>
+        Sign out
+      </button>
+    </>
+  );
 }
 
 function Nav() {
@@ -54,6 +94,9 @@ function Nav() {
         >
           Upload
         </Link>
+        <div className="ml-auto flex gap-6">
+          <AuthNav />
+        </div>
       </div>
     </nav>
   );
@@ -62,38 +105,45 @@ function Nav() {
 export function App() {
   const queryClient = getQueryClient();
   const [trpcClient] = useState(() =>
-    createTRPCClient<AppRouter>({
-      links: [
-        httpBatchLink({
-          url: "http://localhost:4000/trpc",
-        }),
-      ],
-    }),
+    createAppTRPCClient("http://localhost:4000/trpc", tokenStore),
   );
 
   return (
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        <BrowserRouter>
-          <Nav />
-          <main>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <>
-                    <Home />
-                    <div className="max-w-2xl mx-auto px-4 pb-12">
-                      <Test />
-                    </div>
-                  </>
-                }
-              />
-              <Route path="/about" element={<About />} />
-              <Route path="/upload" element={<Upload />} />
-            </Routes>
-          </main>
-        </BrowserRouter>
+        <AuthProvider tokens={tokenStore}>
+          <BrowserRouter>
+            <Nav />
+            <main>
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <>
+                      <Home />
+                      <div className="max-w-2xl mx-auto px-4 pb-12">
+                        <Test />
+                      </div>
+                    </>
+                  }
+                />
+                <Route path="/about" element={<About />} />
+                <Route path="/upload" element={<Upload />} />
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route
+                  path="/account"
+                  element={
+                    <RequireAuth>
+                      <Account />
+                    </RequireAuth>
+                  }
+                />
+              </Routes>
+            </main>
+          </BrowserRouter>
+        </AuthProvider>
       </TRPCProvider>
     </QueryClientProvider>
   );

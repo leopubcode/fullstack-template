@@ -84,7 +84,7 @@ npm run dev --workspace=@repo/web
 Running it locally:
 
 ```sh
-docker compose up -d --wait                       # Postgres 18 on :5432, LocalStack on :4566 (see "Files (S3)")
+docker compose up -d --wait                       # Postgres 18 on :5432, Keycloak on :8080 (see "Auth (Keycloak)"), LocalStack on :4566 (see "Files (S3)")
 cp packages/core/.env.example packages/core/.env
 cp apps/api/.env.example apps/api/.env
 cp apps/worker/.env.example apps/worker/.env
@@ -159,3 +159,28 @@ Persistence is a LocalStack Pro feature, so the community image starts empty eve
 The worker reads `DATABASE_URL`, plus `SIDEQUEST_DASHBOARD_PORT` if you want Sidequest's dashboard (http://localhost:8678 with `.env.example`). The dashboard has no auth, so leave that variable unset when deployed.
 
 To try the whole path, call the `submitTestJob` mutation on the API. It adds a `Testing` job due a day later, so change `runAt` in `TestService` to see it run sooner.
+
+## Auth (Keycloak)
+
+Users sign up with an email and password, verify the email by following a link, then sign in for JWTs. The web app keeps the tokens in `localStorage` and sends the access token as `Authorization: Bearer <token>`. The web app never talks to Keycloak itself: the API signs users up and in on its behalf.
+
+Keycloak is one implementation of core's `IdentityProvider` contract (`packages/core/src/domain/identity/identityProvider.ts`):
+
+- **Client**: `KeycloakIdentityProviderClient` is the only code that talks to Keycloak. It signs users in with the OAuth password grant, and creates accounts and sends verification emails through the Admin REST API as the client's service account. It maps Keycloak's answers to the domain errors in `domain/identity/errors.ts`, and verifies access tokens against the realm's JWKS with [`jose`](https://github.com/panva/jose). Tests use `InMemoryIdentityProviderClient`.
+- **Service**: `AuthService` orchestrates the identity provider and `UsersService`. A user's id is their Keycloak user id (the token's `sub`), and the user record, with its display name, is created in Postgres at sign-up.
+- **Transport**: the `auth` router has `signUp`, `resendVerification`, `signIn`, `refresh`, `signOut` and `me`. `protectedProcedure` (in `src/trpc.ts`) resolves the caller to `ctx.user`, or answers `UNAUTHORIZED`. Domain errors map to tRPC codes in one place: `CONFLICT` (account exists), `PRECONDITION_FAILED` (email not verified), `BAD_REQUEST` (password policy), `UNAUTHORIZED` (credentials or token).
+- **Web**: `useAuth()` (from `apps/web/src/auth`) returns `{ status, user, signUp, resendVerification, signIn, signOut }`. `RequireAuth` guards a route. The tRPC client refreshes the access token once on an `UNAUTHORIZED` and retries, and signs out if the refresh token is rejected too.
+- **Sign-out** ends the Keycloak session, so its refresh tokens stop working. Access tokens already issued stay valid until they expire (5 minutes), because they're verified locally.
+
+Locally, `docker compose up` runs Keycloak 26 in dev mode on http://localhost:8080 (admin console: `admin` / `admin`), with its own `keycloak` database in the compose Postgres, created by the one-shot `keycloak-db` service. On first start it imports the `app` realm from `packages/core/infra/keycloak/app-realm.json`:
+
+- a confidential `api` client with password sign-in and a service account allowed to manage users, whose dev-only secret is in `apps/api/.env.example`;
+- a password policy of at least 8 characters, and required email verification;
+- a user profile with only a username and an email, so accounts need no first or last name before they can sign in;
+- SMTP through [Mailpit](https://mailpit.axllent.org), which catches every email at http://localhost:8025.
+
+The import is skipped once the realm exists. To re-import after editing the file, delete the realm in the admin console and restart Keycloak (`docker compose restart keycloak`).
+
+The verification link opens Keycloak's "Account updated" page, whose "Back to Application" link goes to `KEYCLOAK_VERIFY_EMAIL_REDIRECT_URI` (`/signin?verified=1` on the web app). That URI must match one of the `api` client's valid redirect URIs.
+
+Tokens are only accepted from the issuer `KEYCLOAK_URL/realms/KEYCLOAK_REALM`. In dev mode, Keycloak names itself after the host each request came in on, so the API must reach it at the same URL it is configured with (`http://localhost:8080` when the API runs on the host). In production, run `start` instead of `start-dev`, set `KC_HOSTNAME` to Keycloak's public URL, configure a real SMTP server, and replace the client secret.

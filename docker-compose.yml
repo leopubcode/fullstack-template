@@ -16,6 +16,70 @@ services:
       timeout: 5s
       retries: 15
 
+  # Creates Keycloak's own database in the same Postgres, once. Unlike an
+  # init script, it also runs against a volume created before Keycloak was
+  # added.
+  keycloak-db:
+    image: postgres:18-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    command: >
+      sh -c "psql -d app -tAc \"SELECT 1 FROM pg_database WHERE datname = 'keycloak'\" | grep -q 1
+      || psql -d app -c 'CREATE DATABASE keycloak'"
+    restart: "no"
+
+  keycloak:
+    # Docker Hub's mirror of quay.io/keycloak/keycloak.
+    image: keycloak/keycloak:26.8
+    container_name: keycloak
+    # Dev mode: plain HTTP, and the issuer follows the request's host, so
+    # tokens the API on the host gets are issued by http://localhost:8080.
+    # --import-realm creates the `app` realm from infra/keycloak on first
+    # start, and skips it once it exists.
+    command: start-dev --import-realm
+    depends_on:
+      keycloak-db:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_HEALTH_ENABLED: "true"
+      # The admin console's login, at http://localhost:8080/admin.
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./packages/core/infra/keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      # The image has no curl: ask the management port for readiness by hand.
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  # Catches the email Keycloak sends (verification links). Read it at
+  # http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.31
+    container_name: mailpit
+    ports:
+      - "8025:8025"
+
   localstack:
     # Pinned to the last community release that runs without an account.
     # Later images need LOCALSTACK_AUTH_TOKEN (see the README).

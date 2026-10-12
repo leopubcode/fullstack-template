@@ -1,16 +1,20 @@
 import type { Config } from "../config";
+import type { Clock } from "../domain/clock";
 import type { Storage } from "../domain/storage";
 import { createPostgresDatabase } from "./postgresClientInstance";
 import { s3Client } from "./s3ClientInstance";
 import { createSidequestBackend } from "./sidequestBackendInstance";
 import { S3FileClient } from "./FileClient/S3FileClient";
+import { KeycloakIdentityProviderClient } from "./IdentityProviderClient/KeycloakIdentityProviderClient";
 import { SidequestJobQueueClient } from "./JobQueueClient/SidequestJobQueueClient";
 import { PostgresUsersRepository } from "./UsersRepository/PostgresUsersRepository";
 
 // Data and jobs live in Postgres; files live in S3, as nothing in Postgres
-// would hand out a URL the browser can upload to.
+// would hand out a URL the browser can upload to. Identities live in
+// Keycloak, which keeps its own tables in a database of its own.
 export function createStorage(
-  config: Pick<Config, "database" | "files">,
+  config: Pick<Config, "database" | "files" | "identity">,
+  clock: Clock,
 ): Storage {
   const db = createPostgresDatabase(config.database);
 
@@ -20,5 +24,6 @@ export function createStorage(
       createSidequestBackend(config.database),
     ),
     files: new S3FileClient(config.files.bucketName, s3Client),
+    identity: new KeycloakIdentityProviderClient(config.identity, clock),
   };
 }

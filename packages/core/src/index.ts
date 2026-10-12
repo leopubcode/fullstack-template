@@ -3,6 +3,7 @@ export { createSystemClock } from "./context";
 export type { AppRouter } from "./appRouter";
 export { appRouter } from "./appRouter";
 export type { Role, User } from "./domain/users/types";
+export type { AuthSession, SignUpResult } from "./services/AuthService";
 export type { UsersRepository } from "./domain/users/repository";
 export type { Job, JobType } from "./domain/jobs/types";
 export type { AddJobOptions, JobQueue } from "./domain/jobs/jobQueue";
@@ -12,9 +13,11 @@ export {
   type DatabaseConfig,
   type Env,
   type FilesConfig,
+  type KeycloakConfig,
   loadConfig,
   loadDatabaseConfig,
   loadFilesConfig,
+  loadKeycloakConfig,
 } from "./config";
 export type { FileProvider } from "./domain/files/fileProvider";
 export { createStorage } from "./storage/createStorage";

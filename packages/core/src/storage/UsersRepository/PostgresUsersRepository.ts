@@ -6,6 +6,7 @@ import { users } from "../postgresSchema";
 
 const userColumns = {
   id: users.id,
+  email: users.email,
   displayName: users.displayName,
   roles: users.roles,
 };

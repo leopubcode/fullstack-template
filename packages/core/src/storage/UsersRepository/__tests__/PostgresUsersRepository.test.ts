@@ -13,6 +13,7 @@ const repository = () => new PostgresUsersRepository(postgres.db);
 
 const user = (id: string): User => ({
   id,
+  email: `${id}@example.com`,
   displayName: `User ${id}`,
   roles: ["Customer"],
 });
@@ -39,6 +40,7 @@ describe("the Postgres users repository", () => {
   it("keeps every role a user holds", async () => {
     const rep: User = {
       id: "r-1",
+      email: "rep@example.com",
       displayName: "Rep",
       roles: ["Rep", "Customer"],
     };

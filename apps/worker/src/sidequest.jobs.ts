@@ -14,7 +14,7 @@ import { createRunJob } from "./createRunJob";
 
 const config = loadConfig(process.env);
 const clock = createSystemClock();
-const services = createServices(createStorage(config), clock);
+const services = createServices(createStorage(config, clock), clock);
 
 // Exported under the class name core adds every job as (RunJob in
 // SidequestJobQueueClient).

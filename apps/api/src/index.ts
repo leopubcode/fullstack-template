@@ -14,15 +14,21 @@ import {
 // hands the same ones to every request.
 const config = loadConfig(process.env);
 const clock = createSystemClock();
-const services = createServices(createStorage(config), clock);
+const services = createServices(createStorage(config, clock), clock);
 
+// Each request's context carries the bearer token from its Authorization
+// header, if any; protected procedures resolve it to the caller's user.
 const createContext = ({
-  req: _req,
-  res: _res,
+  req,
 }: trpcExpress.CreateExpressContextOptions): AppContext => ({
   clock,
   services,
+  accessToken: bearerToken(req.headers.authorization),
 });
+
+function bearerToken(header: string | undefined): string | undefined {
+  return header?.match(/^Bearer\s+(\S+)$/i)?.[1];
+}
 
 const app = express();
 

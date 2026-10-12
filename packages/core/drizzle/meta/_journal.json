@@ -8,6 +8,13 @@
       "when": 1791827871432,
       "tag": "0000_create_users",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791837332933,
+      "tag": "0001_add_user_email",
+      "breakpoints": true
     }
   ]
 }
