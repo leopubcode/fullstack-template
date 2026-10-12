@@ -1,6 +1,8 @@
 import type { Config } from "../config";
 import type { Storage } from "../domain/storage";
 import { createPostgresDatabase } from "./postgresClientInstance";
+import { createSidequestBackend } from "./sidequestBackendInstance";
+import { SidequestJobQueueClient } from "./JobQueueClient/SidequestJobQueueClient";
 import { PostgresUsersRepository } from "./UsersRepository/PostgresUsersRepository";
 
 export function createPostgresStorage(
@@ -10,5 +12,8 @@ export function createPostgresStorage(
 
   return {
     users: new PostgresUsersRepository(db),
+    jobQueue: new SidequestJobQueueClient(
+      createSidequestBackend(config.database),
+    ),
   };
 }

@@ -1,0 +1,14 @@
+node_modules
+dist
+**/node_modules
+**/dist
+**/.turbo
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.claude
+**/*.tfstate*
+**/.terraform
+**/terraform.tfvars
+npm-debug.log*

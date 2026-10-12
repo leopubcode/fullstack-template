@@ -71,7 +71,9 @@ If you want to build something that can scale but without being vendor locked-in
 npm run build:watch --workspace=@repo/utils
 npm run build:watch --workspace=@repo/core
 npm run build:watch --workspace=@repo/api
+npm run build:watch --workspace=@repo/worker
 npm run dev --workspace=@repo/api
+npm run dev --workspace=@repo/worker
 npm run dev --workspace=@repo/web
 ```
 
@@ -85,7 +87,8 @@ Running it locally:
 docker compose up -d --wait                       # Postgres 18 on :5432
 cp packages/core/.env.example packages/core/.env
 cp apps/api/.env.example apps/api/.env
-npm run db:setup                                  # applies pending migrations (safe to re-run)
+cp apps/worker/.env.example apps/worker/.env
+npm run db:setup                                  # applies pending migrations, Drizzle's and Sidequest's (safe to re-run)
 ```
 
 After changing the schema, generate a migration and commit it:
@@ -117,3 +120,16 @@ DATABASE_URL="$(terraform output -raw database_url)" npm run db:setup
 ```
 
 The state holds the database password, so keep it in a private remote backend for anything shared.
+
+## Worker (Sidequest + Node.js)
+
+`apps/worker` is a long-running Node.js process, deployed like `apps/api`, that runs background jobs with [Sidequest](https://docs.sidequestjs.com). Sidequest keeps its jobs in the same Postgres, in its own `sidequest_*` tables. `npm run db:setup` migrates them, and so does the worker each time it starts.
+
+- Services add jobs through the `JobQueue` interface (`packages/core/src/domain/jobs/jobQueue.ts`). On Postgres, `SidequestJobQueueClient` stores each one as a `RunJob` whose argument is the job's JSON body. A `runAt` sets when the job becomes available. A `key` deduplicates the same job while it is still waiting or running.
+- The worker polls for due jobs and runs each one in its own process. `src/sidequest.jobs.ts` builds the services and exports the `RunJob` that hands the body to `handleJob` in `packages/core/src/transport/jobs.ts`.
+- A job whose handler throws is retried with exponential backoff, and marked `failed` after 5 attempts. A body that doesn't parse is marked `failed` straight away.
+- On SIGINT or SIGTERM, the worker stops claiming jobs, waits for the running ones, and exits.
+
+The worker reads `DATABASE_URL`, plus `SIDEQUEST_DASHBOARD_PORT` if you want Sidequest's dashboard (http://localhost:8678 with `.env.example`). The dashboard has no auth, so leave that variable unset when deployed.
+
+To try the whole path, call the `submitTestJob` mutation on the API. It adds a `Testing` job due a day later, so change `runAt` in `TestService` to see it run sooner.

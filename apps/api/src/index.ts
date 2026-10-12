@@ -6,18 +6,21 @@ import {
   appRouter,
   createPostgresStorage,
   createServices,
+  createSystemClock,
   loadConfig,
 } from "@repo/core";
 
 // The composition root: builds the services from env once, at startup, and
 // hands the same ones to every request.
 const config = loadConfig(process.env);
-const services = createServices(createPostgresStorage(config));
+const clock = createSystemClock();
+const services = createServices(createPostgresStorage(config), clock);
 
 const createContext = ({
   req: _req,
   res: _res,
 }: trpcExpress.CreateExpressContextOptions): AppContext => ({
+  clock,
   services,
 });
 

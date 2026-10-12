@@ -25,7 +25,7 @@
     "format": "prettier --write \"src/**/*.ts\" --log-level warn",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:setup": "dotenv -- drizzle-kit migrate",
+    "db:setup": "dotenv -- drizzle-kit migrate && dotenv -- tsx scripts/migrate-sidequest.ts",
     "db:generate": "drizzle-kit generate"
   },
   "devDependencies": {
@@ -41,9 +41,11 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@sidequest/postgres-backend": "^1.16.6",
     "@trpc/server": "^11.19.0",
     "drizzle-orm": "^0.45.4",
     "postgres": "^3.4.9",
+    "sidequest": "^1.16.6",
     "zod": "^4.6.5"
   }
 }

@@ -1,0 +1,35 @@
+{
+  "name": "@repo/worker",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "UNLICENSED",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "dev": "dotenv -- nodemon dist/index.cjs",
+    "start": "node dist/index.cjs",
+    "build": "node ./esbuild.config.js",
+    "build:watch": "WATCH_MODE=true npm run build",
+    "check-types": "tsc",
+    "lint": "eslint 'src/**/*.ts'",
+    "format": "prettier --write \"src/**/*.ts\" --log-level warn",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/node": "^26.x.x",
+    "dotenv-cli": "^11.0.0",
+    "esbuild": "^0.28.2",
+    "globals": "^17.13.0",
+    "nodemon": "^3.1.14",
+    "typescript": "6.0.3",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@repo/core": "*",
+    "@sidequest/postgres-backend": "^1.16.6",
+    "sidequest": "^1.16.6"
+  }
+}

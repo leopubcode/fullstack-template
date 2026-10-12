@@ -11,6 +11,9 @@ export const appRouter = router({
 
     return users;
   }),
+  submitTestJob: publicProcedure.mutation(({ ctx }) =>
+    ctx.services.test.submit(),
+  ),
 });
 
 export type AppRouter = typeof appRouter;

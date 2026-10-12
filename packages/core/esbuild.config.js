@@ -8,6 +8,9 @@ async function run() {
     platform: "node",
     outfile: "dist/index.cjs",
     target: "node20",
+    // Sidequest imports its backend driver by package name at runtime, so it
+    // has to stay in node_modules.
+    external: ["sidequest", "@sidequest/*"],
   };
 
   if (process.env.WATCH_MODE) {
