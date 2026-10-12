@@ -1,5 +1,6 @@
 import type { Clock } from "../domain/clock";
 import type { Storage } from "../domain/storage";
+import { InMemoryFileClient } from "./FileClient/InMemoryFileClient";
 import { InMemoryJobQueueClient } from "./JobQueueClient/InMemoryJobQueueClient";
 import { InMemoryUsersRepository } from "./UsersRepository/InMemoryUsersRepository";
 
@@ -8,11 +9,13 @@ import { InMemoryUsersRepository } from "./UsersRepository/InMemoryUsersReposito
 export interface InMemoryStorage extends Storage {
   users: InMemoryUsersRepository;
   jobQueue: InMemoryJobQueueClient;
+  files: InMemoryFileClient;
 }
 
 export function createInMemoryStorage(clock: Clock): InMemoryStorage {
   return {
     users: new InMemoryUsersRepository(),
     jobQueue: new InMemoryJobQueueClient(clock),
+    files: new InMemoryFileClient(),
   };
 }

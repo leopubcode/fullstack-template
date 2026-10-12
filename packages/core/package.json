@@ -21,17 +21,25 @@
     "build": "node ./esbuild.config.js",
     "build:watch": "WATCH_MODE=true npm run build",
     "check-types": "tsc",
-    "lint": "eslint 'src/**/*.ts'",
-    "format": "prettier --write \"src/**/*.ts\" --log-level warn",
+    "lint": "eslint 'src/**/*.ts' 'infra/**/*.ts'",
+    "format": "prettier --write \"{src,infra}/**/*.ts\" --log-level warn",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:setup": "dotenv -- drizzle-kit migrate && dotenv -- tsx scripts/migrate-sidequest.ts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "cdk:bootstrap:local": "cdklocal bootstrap --context stage=local",
+    "cdk:deploy:local": "cdklocal deploy --context stage=local --require-approval never --outputs-file infra/files/cdk-outputs.json",
+    "cdk:synth": "cdk synth --context stage=aws",
+    "cdk:deploy": "cdk deploy --context stage=aws --outputs-file infra/files/cdk-outputs.json"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.9",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
+    "aws-cdk": "^2.1145.0",
+    "aws-cdk-lib": "^2.273.0",
+    "aws-cdk-local": "^3.0.4",
+    "constructs": "^10.8.1",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
@@ -41,6 +49,8 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1150.0",
+    "@aws-sdk/s3-request-presigner": "^3.1150.0",
     "@sidequest/postgres-backend": "^1.16.6",
     "@trpc/server": "^11.19.0",
     "drizzle-orm": "^0.45.4",

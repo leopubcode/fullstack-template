@@ -18,12 +18,24 @@ export function loadDatabaseConfig(env: Env): DatabaseConfig {
   };
 }
 
+export interface FilesConfig {
+  bucketName: string;
+}
+
+export function loadFilesConfig(env: Env): FilesConfig {
+  return {
+    bucketName: requireEnv(env, "FILES_BUCKET_NAME"),
+  };
+}
+
 export interface Config {
   database: DatabaseConfig;
+  files: FilesConfig;
 }
 
 export function loadConfig(env: Env): Config {
   return {
     database: loadDatabaseConfig(env),
+    files: loadFilesConfig(env),
   };
 }

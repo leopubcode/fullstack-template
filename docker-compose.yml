@@ -16,5 +16,18 @@ services:
       timeout: 5s
       retries: 15
 
+  localstack:
+    # Pinned to the last community release that runs without an account.
+    # Later images need LOCALSTACK_AUTH_TOKEN (see the README).
+    image: localstack/localstack:4.14.0
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - PERSISTENCE=1
+    volumes:
+      - localstack-data:/var/lib/localstack
+
 volumes:
   postgres-data:
+  localstack-data:

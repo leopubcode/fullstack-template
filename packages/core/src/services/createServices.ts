@@ -1,6 +1,7 @@
 import type { Services } from "../context";
 import type { Clock } from "../domain/clock";
 import type { Storage } from "../domain/storage";
+import { FilesService } from "./FilesService";
 import { TestService } from "./TestService";
 import { UsersService } from "./UsersService";
 
@@ -11,5 +12,6 @@ export function createServices(storage: Storage, clock: Clock): Services {
   return {
     users: new UsersService(storage.users),
     test: new TestService(storage.jobQueue, clock),
+    files: new FilesService(storage.files),
   };
 }

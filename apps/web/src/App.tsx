@@ -8,6 +8,7 @@ import { TRPCProvider } from "./trpc";
 import { Test } from "./Test";
 import { Home } from "./pages/Home";
 import { About } from "./pages/About";
+import { Upload } from "./pages/Upload";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -47,6 +48,12 @@ function Nav() {
         >
           About
         </Link>
+        <Link
+          to="/upload"
+          className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 font-medium"
+        >
+          Upload
+        </Link>
       </div>
     </nav>
   );
@@ -83,6 +90,7 @@ export function App() {
                 }
               />
               <Route path="/about" element={<About />} />
+              <Route path="/upload" element={<Upload />} />
             </Routes>
           </main>
         </BrowserRouter>

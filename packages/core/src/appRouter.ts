@@ -14,6 +14,12 @@ export const appRouter = router({
   submitTestJob: publicProcedure.mutation(({ ctx }) =>
     ctx.services.test.submit(),
   ),
+  createImageUpload: publicProcedure.mutation(({ ctx }) =>
+    ctx.services.files.createImageUpload(),
+  ),
+  listImages: publicProcedure.query(({ ctx }) =>
+    ctx.services.files.listImages(),
+  ),
 });
 
 export type AppRouter = typeof appRouter;

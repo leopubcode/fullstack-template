@@ -84,7 +84,7 @@ npm run dev --workspace=@repo/web
 Running it locally:
 
 ```sh
-docker compose up -d --wait                       # Postgres 18 on :5432
+docker compose up -d --wait                       # Postgres 18 on :5432, LocalStack on :4566 (see "Files (S3)")
 cp packages/core/.env.example packages/core/.env
 cp apps/api/.env.example apps/api/.env
 cp apps/worker/.env.example apps/worker/.env
@@ -120,6 +120,32 @@ DATABASE_URL="$(terraform output -raw database_url)" npm run db:setup
 ```
 
 The state holds the database password, so keep it in a private remote backend for anything shared.
+
+## Files (S3)
+
+Services reach file storage through the `FileProvider` interface (`packages/core/src/domain/files/fileProvider.ts`). `S3FileClient` implements it by handing out presigned PUT URLs, so the browser uploads straight to the bucket; tests use `InMemoryFileClient`. Every app reads the bucket's name as `FILES_BUCKET_NAME`, and the AWS SDK's standard env (`AWS_REGION`, credentials, `AWS_ENDPOINT_URL`).
+
+`packages/core/infra/files` is a CDK stack, `Files`, with only the bucket. It deploys to LocalStack (`stage=local`) or AWS (`stage=aws`). The bucket's CORS allows PUT from `allowedOrigins` (default `http://localhost:5173`, override with `--context allowedOrigins='[...]'`).
+
+Running it locally:
+
+```sh
+docker compose up -d --wait                                   # LocalStack on :4566, next to Postgres
+npm run cdk:bootstrap:local --workspace=@repo/core            # once per LocalStack volume
+npm run cdk:deploy:local --workspace=@repo/core               # writes packages/core/infra/files/cdk-outputs.json
+```
+
+Then set `FILES_BUCKET_NAME` in `apps/api/.env` and `apps/worker/.env` to the `FilesBucketName` output. `cdklocal` needs no AWS credentials of your own.
+
+To try it, open the web app's Upload page. It calls the `createImageUpload` mutation (`FilesService`), which returns a fresh `images/<uuid>` key and its presigned URL, then PUTs the image straight to the bucket. Below the form, `listImages` lists every uploaded image, newest first, each shown through a presigned GET URL.
+
+On LocalStack, presigned URLs must be signed for `s3.localhost.localstack.cloud`: LocalStack doesn't route the `<bucket>.localhost` host the SDK would sign for with only `AWS_ENDPOINT_URL`. The `.env.example` files set `AWS_ENDPOINT_URL_S3` for that. That host resolves to `127.0.0.1` through public DNS, so a router with DNS-rebinding protection may block it.
+
+To deploy to AWS, run `npm run cdk:deploy --workspace=@repo/core` with your AWS credentials. The API doesn't run on AWS, so the stack can't grant it access itself: attach the `FilesAccessPolicyArn` output to the IAM user or role whose credentials the API runs with. It lets the API list the bucket and sign upload and download URLs.
+
+`docker-compose.yml` pins `localstack/localstack:4.14.0`. Later images require a `LOCALSTACK_AUTH_TOKEN` in the container's environment.
+
+Persistence is a LocalStack Pro feature, so the community image starts empty every time the container restarts. Run `cdk:bootstrap:local` and `cdk:deploy:local` again after a restart, and update `FILES_BUCKET_NAME`, as the bucket gets a new name.
 
 ## Worker (Sidequest + Node.js)
 

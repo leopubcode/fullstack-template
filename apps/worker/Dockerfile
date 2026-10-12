@@ -3,8 +3,8 @@
 #
 #   docker build -f apps/worker/Dockerfile -t worker .
 #
-# It needs DATABASE_URL at runtime, and SIDEQUEST_DASHBOARD_PORT only to serve
-# Sidequest's dashboard.
+# It needs DATABASE_URL, FILES_BUCKET_NAME and AWS credentials at runtime, and
+# SIDEQUEST_DASHBOARD_PORT only to serve Sidequest's dashboard.
 
 FROM node:26-alpine AS base
 # The npm the repository pins in packageManager.

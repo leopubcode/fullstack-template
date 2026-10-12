@@ -4,7 +4,7 @@ import cors from "cors";
 import {
   type AppContext,
   appRouter,
-  createPostgresStorage,
+  createStorage,
   createServices,
   createSystemClock,
   loadConfig,
@@ -14,7 +14,7 @@ import {
 // hands the same ones to every request.
 const config = loadConfig(process.env);
 const clock = createSystemClock();
-const services = createServices(createPostgresStorage(config), clock);
+const services = createServices(createStorage(config), clock);
 
 const createContext = ({
   req: _req,

@@ -11,10 +11,13 @@ export {
   type Config,
   type DatabaseConfig,
   type Env,
+  type FilesConfig,
   loadConfig,
   loadDatabaseConfig,
+  loadFilesConfig,
 } from "./config";
-export { createPostgresStorage } from "./storage/createPostgresStorage";
+export type { FileProvider } from "./domain/files/fileProvider";
+export { createStorage } from "./storage/createStorage";
 export { sidequestBackendConfig } from "./storage/sidequestBackendInstance";
 export { createServices } from "./services/createServices";
 export {
