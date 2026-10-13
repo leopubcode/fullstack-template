@@ -8,8 +8,6 @@ If you choose to use multiple clients, you can create your own component library
 
 ## Variants
 
-Obviously every project is different so you might not need the exact template provided. Instead of trying to provide the perfect template you build your own from the available options below. Each of the options below is a branch off main with commits that add a specific piece to the project. You can simply rebase each of the branches into main to build your stack.
-
 If you don't want to manage infrastructure and don't mind being vendor locked-in choose this. Perfect for personal projects or for building fast and you dont mind paying a premium when you need to scale:
 
 - Lambda API runtime -> DynamoDB -> SQS + Lambda worker -> S3 storage -> AWS Cognito -> AWS Secret Manager
@@ -18,52 +16,18 @@ If you want to build something that can scale but without being vendor locked-in
 
 - Docker Node.js API runtime -> Postgres (supabase) -> Sidequest (Postgres) worker -> S3 storage -> Railway infrastructure -> keycloak auth -> OpenBao
 
-### APIs:
+## Pieces
 
-- tRPC (default)
-- Apollo Server
+This is a record of the tools, machanism, or technologies that are used in this template. If you end up building your own template consider the following list:
 
-### API Runtimes:
-
-- Docker Node.js
-- Lambda
-
-### Databases:
-
-- SQLite
-- Postgres
-- DynamoDB
-- MongoDB
-- Redis
-
-### Workers:
-
-- Sidequest
-- SQS + Lambda
-- SQS + Docker Node.js
-- BullMQ + Docker Node.js
-
-### Storage:
-
-- S3
-- Local files
-
-### Infrastructure:
-
-- Railway
-- ECS
-
-### Auth:
-
-- Keycloak
-- AWS Cognito
-- Auth0
-
-### Secret management:
-
-- OpenBao
-- AWS Secret Manager
-- .env
+- ESLint + Prettier
+- husky + lint staged
+- local env with docker compose
+- unit + integration testing over e2e testing
+- prod builds + dockerfiles
+- IaC: AWS CDK + Terraform
+- DB migrations + preview DB envs
+- Observability
 
 ## Getting started
 
